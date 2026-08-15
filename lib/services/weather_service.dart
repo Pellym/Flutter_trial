@@ -7,60 +7,123 @@ import 'package:http/http.dart' as http;
 import '../models/weather_model.dart';
 
 class WeatherService {
-static const String baseUrl =
-'https://api.openweathermap.org/data/2.5/weather';
+  static const String baseUrl =
+      'https://api.openweathermap.org/data/2.5/weather';
 
-final String apiKey;
+  final String apiKey;
 
-WeatherService(this.apiKey);
+  WeatherService(this.apiKey);
 
-Future<Weather> getWeather(String cityName) async {
-final response = await http.get(
-Uri.parse(
-'$baseUrl?q=$cityName&appid=$apiKey&units=metric',
-),
-);
+  // Get weather for a city
+  Future<Weather> getWeather(String cityName) async {
+    final uri = Uri.parse(baseUrl).replace(
+      queryParameters: {
+        'q': cityName,
+        'appid': apiKey,
+        'units': 'metric',
+      },
+    );
 
-if (response.statusCode == 200) {
-  return Weather.fromJson(jsonDecode(response.body));
-} else {
-  throw Exception('Failed to load weather data');
+    print('Requesting weather for: $cityName');
+    print('URL: $uri');
+
+    final response = await http.get(uri);
+
+    print('Weather API status: ${response.statusCode}');
+    print('Weather API response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data =
+          jsonDecode(response.body);
+
+      return Weather.fromJson(data);
+    } else {
+      throw Exception(
+        'Failed to load weather data. '
+        'Status code: ${response.statusCode}',
+      );
+    }
+  }
+
+  // Get the user's current location
+  Future<Position> getCurrentPosition() async {
+    LocationPermission permission =
+        await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission =
+          await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied) {
+      throw Exception('Location permission denied');
+    }
+
+    if (permission ==
+        LocationPermission.deniedForever) {
+      throw Exception(
+        'Location permission permanently denied. '
+        'Please enable location permission in Android settings.',
+      );
+    }
+
+    final bool serviceEnabled =
+        await Geolocator.isLocationServiceEnabled();
+
+    if (!serviceEnabled) {
+      throw Exception(
+        'Location services are disabled.',
+      );
+    }
+
+    return await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+      ),
+    );
+  }
+
+  // Convert GPS coordinates into a city name
+  Future<String> getCurrentCity() async {
+    final Position position =
+        await getCurrentPosition();
+
+    print(
+      'Current location: '
+      '${position.latitude}, ${position.longitude}',
+    );
+
+    final List<geo.Placemark> placemarks =
+        await geo.placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    if (placemarks.isEmpty) {
+      throw Exception(
+        'Could not determine the current city.',
+      );
+    }
+
+    final geo.Placemark place =
+        placemarks.first;
+
+    print('Country: ${place.country}');
+    print('City: ${place.locality}');
+    print('Suburb: ${place.subLocality}');
+
+    final String city =
+        place.locality ??
+        place.subAdministrativeArea ??
+        place.administrativeArea ??
+        '';
+
+    if (city.isEmpty) {
+      throw Exception(
+        'Could not determine the current city.',
+      );
+    }
+
+    return city;
+  }
 }
-
-}
-
-Future<String> getCurrentCity() async {
-LocationPermission permission =
-await Geolocator.checkPermission();
-
-if (permission == LocationPermission.denied) {
-  permission = await Geolocator.requestPermission();
-}
-
-if (permission == LocationPermission.denied ||
-    permission == LocationPermission.deniedForever) {
-  throw Exception('Location permission denied');
-}
-
-final Position position =
-    await Geolocator.getCurrentPosition(
-  locationSettings: const LocationSettings(
-    accuracy: LocationAccuracy.high,
-  ),
-);
-
-final geo.Geocoding geocoding = geo.Geocoding();
-
-final List<geo.Placemark> placemarks =
-    await geocoding.placemarkFromCoordinates(
-  position.latitude,
-  position.longitude,
-);
-
-final String? city = placemarks.first.locality;
-
-return city ?? '';
-
-}
-}
-
