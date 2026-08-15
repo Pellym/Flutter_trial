@@ -25,15 +25,18 @@ class _WeatherPageState extends State<WeatherPage> {
 
   Future<void> getWeather() async {
     try {
-      String cityName = await _weatherService.getCurrentCity();
+      // Temporary test:
+      // We are not using Geolocator/current location.
+      // We are directly requesting Johannesburg weather.
+      final weather = await _weatherService.getWeather('Johannesburg');
 
-      final weather = await _weatherService.getWeather(cityName);
+      if (!mounted) return;
 
       setState(() {
         _weather = weather;
       });
     } catch (e) {
-    //WEather could not be loaded
+      debugPrint('Weather error: $e');
     }
   }
 
@@ -44,8 +47,14 @@ class _WeatherPageState extends State<WeatherPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Lottie.asset('assets/sunny.json'),
+            Lottie.asset(
+              'assets/sunny.json',
+              width: 200,
+              height: 200,
+            ),
+
             const SizedBox(height: 20),
+
             Text(
               _weather?.cityName ?? 'Loading city...',
               style: const TextStyle(
@@ -54,8 +63,8 @@ class _WeatherPageState extends State<WeatherPage> {
               ),
             ),
 
-
             const SizedBox(height: 20),
+
             Text(
               _weather != null
                   ? '${_weather!.temparature.round()}°C'
@@ -64,7 +73,9 @@ class _WeatherPageState extends State<WeatherPage> {
                 fontSize: 50,
               ),
             ),
+
             const SizedBox(height: 20),
+
             Text(
               _weather?.mainCondition ?? 'Loading weather...',
               style: const TextStyle(
