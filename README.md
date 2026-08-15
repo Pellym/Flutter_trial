@@ -1,4 +1,5 @@
 # my_flutter_app
+We have a huge underlooked issue most students at wethinkcode come either confussed or feel betrayed by the weather changes and differences like for an instance someone who stays in Thembisa to campus rosebank is shocked how cold most days can be and that is mostly most students dont watch news but with this weather app that will give  updates so people dont come under-dressed and rather prepared for the day, because bad weather can ruin an entire productive day. Lets bring back weather aps and updates!!!
 
 A new Flutter project.
 
