@@ -24,17 +24,10 @@ class WeatherService {
       },
     );
 
-    print('Requesting weather for: $cityName');
-    print('URL: $uri');
-
     final response = await http.get(uri);
 
-    print('Weather API status: ${response.statusCode}');
-    print('Weather API response: ${response.body}');
-
     if (response.statusCode == 200) {
-      final Map<String, dynamic> data =
-          jsonDecode(response.body);
+      final Map<String, dynamic> data = jsonDecode(response.body);
 
       return Weather.fromJson(data);
     } else {
@@ -45,22 +38,22 @@ class WeatherService {
     }
   }
 
-  // Get the user's current location
+  // Get the user's current GPS location
   Future<Position> getCurrentPosition() async {
     LocationPermission permission =
         await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
-      permission =
-          await Geolocator.requestPermission();
+      permission = await Geolocator.requestPermission();
     }
 
     if (permission == LocationPermission.denied) {
-      throw Exception('Location permission denied');
+      throw Exception(
+        'Location permission denied.',
+      );
     }
 
-    if (permission ==
-        LocationPermission.deniedForever) {
+    if (permission == LocationPermission.deniedForever) {
       throw Exception(
         'Location permission permanently denied. '
         'Please enable location permission in Android settings.',
@@ -76,25 +69,23 @@ class WeatherService {
       );
     }
 
-    return await Geolocator.getCurrentPosition(
+    return Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
       ),
+    ).timeout(
+      const Duration(seconds: 10),
     );
   }
 
   // Convert GPS coordinates into a city name
   Future<String> getCurrentCity() async {
-    final Position position =
-        await getCurrentPosition();
+    final Position position = await getCurrentPosition();
 
-    print(
-      'Current location: '
-      '${position.latitude}, ${position.longitude}',
-    );
+    final geo.Geocoding geocoding = geo.Geocoding();
 
     final List<geo.Placemark> placemarks =
-        await geo.placemarkFromCoordinates(
+        await geocoding.placemarkFromCoordinates(
       position.latitude,
       position.longitude,
     );
@@ -105,12 +96,7 @@ class WeatherService {
       );
     }
 
-    final geo.Placemark place =
-        placemarks.first;
-
-    print('Country: ${place.country}');
-    print('City: ${place.locality}');
-    print('Suburb: ${place.subLocality}');
+    final geo.Placemark place = placemarks.first;
 
     final String city =
         place.locality ??

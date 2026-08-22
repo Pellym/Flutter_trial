@@ -1,7 +1,4 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 import '../models/weather_model.dart';
 import '../services/weather_service.dart';
@@ -23,39 +20,24 @@ class _WeatherPageState extends State<WeatherPage> {
 
   bool _isLoading = true;
 
-  Timer? _timer;
-
   @override
   void initState() {
     super.initState();
-
-    // Load weather immediately
     getWeather();
-
-    // Refresh weather every 10 minutes
-    _timer = Timer.periodic(
-      const Duration(minutes: 10),
-      (timer) {
-        getWeather();
-      },
-    );
   }
 
   Future<void> getWeather() async {
-    try {
-      if (mounted) {
-        setState(() {
-          _isLoading = true;
-          _error = null;
-        });
-      }
+    if (!mounted) return;
 
-      // Get the user's current city
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
       final cityName = await _weatherService.getCurrentCity();
 
-      // Get latest weather for that city
-      final weather =
-          await _weatherService.getWeather(cityName);
+      final weather = await _weatherService.getWeather(cityName);
 
       if (!mounted) return;
 
@@ -63,68 +45,98 @@ class _WeatherPageState extends State<WeatherPage> {
         _weather = weather;
         _isLoading = false;
       });
-
-      debugPrint(
-        'Weather updated: ${weather.cityName}, '
-        '${weather.temparature}°C, '
-        '${weather.mainCondition}',
-      );
     } catch (e) {
+      debugPrint('Weather error: $e');
+
       if (!mounted) return;
 
       setState(() {
         _error = 'Could not load weather';
         _isLoading = false;
       });
-
-      debugPrint('Weather error: $e');
     }
   }
 
-  String getWeatherAnimation(String? condition) {
-    if (condition == null) {
-      return 'assets/sunny.json';
+  List<Map<String, dynamic>> getActivities() {
+    final condition = _weather?.mainCondition.toLowerCase() ?? '';
+
+    if (condition.contains('rain') ||
+        condition.contains('drizzle')) {
+      return [
+        {
+          'icon': Icons.menu_book,
+          'title': 'Read a book',
+        },
+        {
+          'icon': Icons.movie,
+          'title': 'Watch a movie',
+        },
+        {
+          'icon': Icons.local_cafe,
+          'title': 'Make some coffee',
+        },
+      ];
     }
 
-    final weather = condition.toLowerCase();
-
-    if (weather.contains('rain') ||
-        weather.contains('drizzle') ||
-        weather.contains('shower')) {
-      return 'assets/Rain icon.json';
+    if (condition.contains('storm') ||
+        condition.contains('thunder')) {
+      return [
+        {
+          'icon': Icons.home,
+          'title': 'Relax at home',
+        },
+        {
+          'icon': Icons.videogame_asset,
+          'title': 'Play a game',
+        },
+        {
+          'icon': Icons.music_note,
+          'title': 'Listen to music',
+        },
+      ];
     }
 
-    if (weather.contains('thunder') ||
-        weather.contains('storm')) {
-      return 'assets/Weather-storm.json';
+    if (condition.contains('cloud')) {
+      return [
+        {
+          'icon': Icons.directions_walk,
+          'title': 'Go for a walk',
+        },
+        {
+          'icon': Icons.headphones,
+          'title': 'Listen to music',
+        },
+        {
+          'icon': Icons.camera_alt,
+          'title': 'Take some photos',
+        },
+      ];
     }
 
-    if (weather.contains('wind')) {
-      return 'assets/Weather-windy.json';
-    }
-
-    if (weather.contains('cloud')) {
-      return 'assets/Weather-windy.json';
-    }
-
-    return 'assets/sunny.json';
-  }
-
-  @override
-  void dispose() {
-    // Stop the timer when leaving the page
-    _timer?.cancel();
-
-    super.dispose();
+    return [
+      {
+        'icon': Icons.wb_sunny,
+        'title': 'Enjoy the sunshine',
+      },
+      {
+        'icon': Icons.directions_walk,
+        'title': 'Go for a walk',
+      },
+      {
+        'icon': Icons.park,
+        'title': 'Have a picnic',
+      },
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
+    final activities = getActivities();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Weather'),
         centerTitle: true,
-
         actions: [
           IconButton(
             onPressed: _isLoading ? null : getWeather,
@@ -132,139 +144,139 @@ class _WeatherPageState extends State<WeatherPage> {
           ),
         ],
       ),
-
       body: RefreshIndicator(
         onRefresh: getWeather,
-
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-
+          padding: const EdgeInsets.all(20),
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
 
-            // Lottie animation
-            SizedBox(
-              height: 250,
-
-              child: Lottie.asset(
-                getWeatherAnimation(
-                  _weather?.mainCondition,
-                ),
-
-                fit: BoxFit.contain,
-                repeat: true,
-                animate: true,
-
-                errorBuilder:
-                    (context, error, stackTrace) {
-                  debugPrint(
-                    'Lottie error: $error',
-                  );
-
-                  return const Icon(
-                    Icons.cloud,
-                    size: 120,
-                  );
-                },
-              ),
+            const Icon(
+              Icons.cloud,
+              size: 120,
             ),
 
             const SizedBox(height: 20),
 
-            // City
             Text(
               _weather?.cityName ?? 'Loading city...',
-
               textAlign: TextAlign.center,
-
               style: const TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
 
-            // Temperature
             Text(
               _weather != null
                   ? '${_weather!.temparature.round()}°C'
                   : 'Loading temperature...',
-
               textAlign: TextAlign.center,
-
               style: const TextStyle(
                 fontSize: 50,
-                fontWeight: FontWeight.w300,
+                fontWeight: FontWeight.bold,
               ),
             ),
 
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
 
-            // Weather condition
             Text(
-              _weather?.mainCondition ??
-                  'Loading weather...',
-
+              _weather?.mainCondition ?? 'Loading weather...',
               textAlign: TextAlign.center,
-
               style: const TextStyle(
                 fontSize: 24,
               ),
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 35),
 
-            // Loading indicator
+            // Today's activities
+            const Text(
+              '✨ Things to do today',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            ...activities.map(
+              (activity) {
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      child: Icon(activity['icon']),
+                    ),
+                    title: Text(
+                      activity['title'],
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                    ),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Great idea! ${activity['title']}',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 20),
+
             if (_isLoading)
               const Center(
                 child: CircularProgressIndicator(),
               ),
 
-            const SizedBox(height: 20),
+            if (_error != null) ...[
+              const SizedBox(height: 20),
 
-            // Error
-            if (_error != null)
-              Column(
-                children: [
-                  Text(
-                    _error!,
-                    style: const TextStyle(
-                      color: Colors.red,
-                    ),
+              Center(
+                child: Text(
+                  _error!,
+                  style: const TextStyle(
+                    color: Colors.red,
                   ),
-
-                  const SizedBox(height: 10),
-
-                  ElevatedButton(
-                    onPressed: getWeather,
-                    child: const Text(
-                      'Try Again',
-                    ),
-                  ),
-                ],
+                ),
               ),
 
-            const SizedBox(height: 40),
+              const SizedBox(height: 10),
 
-            // Manual refresh
+              Center(
+                child: ElevatedButton(
+                  onPressed: getWeather,
+                  child: const Text('Try Again'),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 25),
+
             Center(
               child: ElevatedButton.icon(
-                onPressed: _isLoading
-                    ? null
-                    : getWeather,
-
-                icon: const Icon(
-                  Icons.refresh,
-                ),
-
-                label: const Text(
-                  'Update Weather',
-                ),
+                onPressed: _isLoading ? null : getWeather,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Update Weather'),
               ),
             ),
 
-            const SizedBox(height: 50),
+            const SizedBox(height: 30),
           ],
         ),
       ),
